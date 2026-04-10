@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>West Motors · Upload Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0c0e14;--card:#13161f;--card2:#181c27;--border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:#eef0f6;--text2:#7e8599;--text3:#454d66;
+  --blue:#3b82f6;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--purple:#a78bfa;
+  --blue-d:rgba(59,130,246,0.1);--green-d:rgba(34,197,94,0.1);--amber-d:rgba(245,158,11,0.1);--red-d:rgba(239,68,68,0.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* LOGIN */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.auth-card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:2.5rem;width:100%;max-width:380px;}
+.auth-logo{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);margin-bottom:1.75rem;}
+.auth-title{font-size:22px;font-weight:300;margin-bottom:.3rem;}
+.auth-sub{font-size:12px;color:var(--text3);margin-bottom:1.75rem;}
+input[type=password]{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px;transition:border-color .15s;}
+input[type=password]:focus{border-color:var(--blue);}
+.auth-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s;}
+.auth-btn:hover{opacity:.85;}
+.auth-err{font-size:11px;color:var(--red);margin-top:8px;min-height:16px;}
+
+/* UPLOAD APP */
+.app{display:none;max-width:860px;margin:0 auto;padding:2rem 1.5rem;}
+.app-header{margin-bottom:2rem;}
+.app-logo{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;}
+.app-title{font-size:22px;font-weight:300;margin-bottom:.25rem;}
+.app-sub{font-size:13px;color:var(--text2);}
+
+.section{margin-bottom:2rem;}
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.section-label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);}
+.section-line{flex:1;height:1px;background:var(--border);}
+
+.drop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+@media(max-width:580px){.drop-grid{grid-template-columns:1fr;}}
+
+.drop-zone{background:var(--card);border:1px dashed var(--border2);border-radius:10px;padding:1.25rem 1rem;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.drop-zone:hover,.drop-zone.over{border-color:var(--blue);background:var(--blue-d);}
+.drop-zone.done{border-color:var(--green);background:var(--green-d);border-style:solid;}
+.drop-zone.fail{border-color:var(--red);background:var(--red-d);border-style:solid;}
+.drop-zone.busy{border-color:var(--amber);background:var(--amber-d);border-style:solid;}
+.drop-zone input{display:none;}
+.dz-store{font-size:12px;font-weight:600;margin-bottom:3px;}
+.dz-type{font-size:10px;color:var(--text3);margin-bottom:10px;}
+.dz-status{font-size:10px;color:var(--text2);font-family:'DM Mono',monospace;min-height:14px;word-break:break-all;}
+
+/* NAME EDITOR */
+.name-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1.25rem;}
+.name-card-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+.name-card-sub{font-size:11px;color:var(--text3);margin-bottom:14px;}
+.name-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-bottom:14px;}
+.name-row{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;}
+.name-init{font-size:12px;font-weight:600;color:var(--text2);font-family:'DM Mono',monospace;min-width:44px;}
+.name-input{background:transparent;border:none;color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;flex:1;outline:none;}
+.name-input::placeholder{color:var(--text3);}
+.save-btn{background:var(--blue);color:#fff;border:none;padding:9px 22px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.save-btn:hover{opacity:.85;}
+.save-msg{font-size:11px;margin-left:10px;display:inline-block;}
+
+.view-link{display:inline-flex;align-items:center;gap:6px;margin-top:1.75rem;font-size:12px;color:var(--text3);text-decoration:none;padding:7px 14px;border:1px solid var(--border2);border-radius:7px;transition:all .15s;}
+.view-link:hover{color:var(--text);background:var(--card);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="auth-wrap" id="auth">
+  <div class="auth-card">
+    <div class="auth-logo">West Motors Group</div>
+    <div class="auth-title">Upload portal</div>
+    <div class="auth-sub">Admin access only</div>
+    <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')login()">
+    <button class="auth-btn" onclick="login()">Sign in</button>
+    <div class="auth-err" id="err"></div>
+  </div>
+</div>
+
+<!-- UPLOAD APP -->
+<div class="app" id="app">
+  <div class="app-header">
+    <div class="app-logo">West Motors Group · Admin</div>
+    <div class="app-title">Upload reports</div>
+    <div class="app-sub">Drop Dealertrack exports below. Data updates instantly for all viewers.</div>
+  </div>
+
+  <!-- WRITER PLA -->
+  <div class="section">
+    <div class="section-head"><div class="section-label">Service Writer PLA</div><div class="section-line"></div></div>
+    <div class="drop-grid">
+      <div class="drop-zone" id="dz-writer-ford" onclick="pick('writer','ford')" ondrop="drop(event,'writer','ford')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-writer-ford" accept=".csv,.xls,.xlsx" onchange="go(this,'writer','ford')">
+        <div class="dz-store" style="color:#60a5fa;">Ford Store</div>
+        <div class="dz-type">Writer PLA</div>
+        <div class="dz-status" id="s-writer-ford">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-writer-cdjr" onclick="pick('writer','cdjr')" ondrop="drop(event,'writer','cdjr')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-writer-cdjr" accept=".csv,.xls,.xlsx" onchange="go(this,'writer','cdjr')">
+        <div class="dz-store" style="color:#f87171;">CDJR Store</div>
+        <div class="dz-type">Writer PLA</div>
+        <div class="dz-status" id="s-writer-cdjr">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-writer-body" onclick="pick('writer','body')" ondrop="drop(event,'writer','body')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-writer-body" accept=".csv,.xls,.xlsx" onchange="go(this,'writer','body')">
+        <div class="dz-store" style="color:#4ade80;">Body Shop</div>
+        <div class="dz-type">Writer PLA</div>
+        <div class="dz-status" id="s-writer-body">Drop or tap to upload</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECH PLA -->
+  <div class="section">
+    <div class="section-head"><div class="section-label">Technician PLA</div><div class="section-line"></div></div>
+    <div class="drop-grid">
+      <div class="drop-zone" id="dz-tech-ford" onclick="pick('tech','ford')" ondrop="drop(event,'tech','ford')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-tech-ford" accept=".csv,.xls,.xlsx" onchange="go(this,'tech','ford')">
+        <div class="dz-store" style="color:#60a5fa;">Ford Store</div>
+        <div class="dz-type">Tech PLA</div>
+        <div class="dz-status" id="s-tech-ford">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-tech-cdjr" onclick="pick('tech','cdjr')" ondrop="drop(event,'tech','cdjr')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-tech-cdjr" accept=".csv,.xls,.xlsx" onchange="go(this,'tech','cdjr')">
+        <div class="dz-store" style="color:#f87171;">CDJR Store</div>
+        <div class="dz-type">Tech PLA</div>
+        <div class="dz-status" id="s-tech-cdjr">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-tech-body" onclick="pick('tech','body')" ondrop="drop(event,'tech','body')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-tech-body" accept=".csv,.xls,.xlsx" onchange="go(this,'tech','body')">
+        <div class="dz-store" style="color:#4ade80;">Body Shop</div>
+        <div class="dz-type">Tech PLA</div>
+        <div class="dz-status" id="s-tech-body">Drop or tap to upload</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WIP -->
+  <div class="section">
+    <div class="section-head"><div class="section-label">Work in Process</div><div class="section-line"></div></div>
+    <div class="drop-grid">
+      <div class="drop-zone" id="dz-wip-ford" onclick="pick('wip','ford')" ondrop="drop(event,'wip','ford')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-wip-ford" accept=".csv,.xls,.xlsx" onchange="go(this,'wip','ford')">
+        <div class="dz-store" style="color:#60a5fa;">Ford Store</div>
+        <div class="dz-type">WIP Export</div>
+        <div class="dz-status" id="s-wip-ford">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-wip-cdjr" onclick="pick('wip','cdjr')" ondrop="drop(event,'wip','cdjr')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-wip-cdjr" accept=".csv,.xls,.xlsx" onchange="go(this,'wip','cdjr')">
+        <div class="dz-store" style="color:#f87171;">CDJR Store</div>
+        <div class="dz-type">WIP Export</div>
+        <div class="dz-status" id="s-wip-cdjr">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-wip-body" onclick="pick('wip','body')" ondrop="drop(event,'wip','body')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-wip-body" accept=".csv,.xls,.xlsx" onchange="go(this,'wip','body')">
+        <div class="dz-store" style="color:#4ade80;">Body Shop</div>
+        <div class="dz-type">WIP Export</div>
+        <div class="dz-status" id="s-wip-body">Drop or tap to upload</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALES -->
+  <div class="section">
+    <div class="section-head"><div class="section-label">Sales Report (Labor + Parts)</div><div class="section-line"></div></div>
+    <div class="drop-grid">
+      <div class="drop-zone" id="dz-sales-ford" onclick="pick('sales','ford')" ondrop="drop(event,'sales','ford')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-sales-ford" accept=".csv,.xls,.xlsx" onchange="go(this,'sales','ford')">
+        <div class="dz-store" style="color:#60a5fa;">Ford Store</div>
+        <div class="dz-type">Writer Sales Report</div>
+        <div class="dz-status" id="s-sales-ford">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-sales-cdjr" onclick="pick('sales','cdjr')" ondrop="drop(event,'sales','cdjr')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-sales-cdjr" accept=".csv,.xls,.xlsx" onchange="go(this,'sales','cdjr')">
+        <div class="dz-store" style="color:#f87171;">CDJR Store</div>
+        <div class="dz-type">Writer Sales Report</div>
+        <div class="dz-status" id="s-sales-cdjr">Drop or tap to upload</div>
+      </div>
+      <div class="drop-zone" id="dz-sales-body" onclick="pick('sales','body')" ondrop="drop(event,'sales','body')" ondragover="over(event)" ondragleave="leave(event)">
+        <input type="file" id="f-sales-body" accept=".csv,.xls,.xlsx" onchange="go(this,'sales','body')">
+        <div class="dz-store" style="color:#4ade80;">Body Shop</div>
+        <div class="dz-type">Writer Sales Report</div>
+        <div class="dz-status" id="s-sales-body">Drop or tap to upload</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECH NAMES -->
+  <div class="name-card">
+    <div class="name-card-title">Technician names</div>
+    <div class="name-card-sub">Map initials to full names. Saved to the database — persists for all viewers.</div>
+    <div class="name-grid" id="name-grid"><div style="font-size:11px;color:var(--text3);">Upload a tech PLA to see initials here.</div></div>
+    <button class="save-btn" onclick="saveNames()">Save names</button>
+    <span class="save-msg" id="save-msg"></span>
+  </div>
+
+  <a class="view-link" href="index.html">← View dashboard</a>
+</div>
+
+<script>
+const UPLOAD_PASSWORD = 'WestMotors2025!';
+const SUPABASE_URL = 'https://uyynpxixfklbixlnlvlz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5eW5weGl4ZmtsYml4bG5sdmx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTk4MTYsImV4cCI6MjA5MTE3NTgxNn0.8-4zyHKSupFqg9eSjYK8e7QRL_fM698jeoRZeTYncQk';
+const WRITER_TYPES = {'CHRIS SCROGHAM':'lube','CODY ZILLES':'lube','ERIC SCRUTON':'mobile','JOE DANIELS':'mobile'};
+const TECH_SKIP = ['HOUSE TECH'];
+const PM_LABELS = {C:'Customer Pay',W:'Warranty',I:'Internal',S:'Sublet'};
+const PM_COLORS = {C:'#3b82f6',W:'#22c55e',I:'#a78bfa',S:'#f59e0b'};
+const pf = s => parseFloat(String(s||'').replace(/[$, ]/g,'').trim())||0;
+
+let techInitials = new Set();
+let techNames = {};
+
+function login() {
+  if (document.getElementById('pw').value === UPLOAD_PASSWORD) {
+    document.getElementById('auth').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadNames();
+  } else {
+    document.getElementById('err').textContent = 'Incorrect password';
+  }
+}
+document.getElementById('pw').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+
+async function sbDel(path) {
+  await fetch(SUPABASE_URL+path, { method:'DELETE', headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY} });
+}
+async function sbPost(path, body) {
+  const r = await fetch(SUPABASE_URL+path, { method:'POST', headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'return=minimal'}, body:JSON.stringify(body) });
+  if (!r.ok) throw new Error(await r.text());
+}
+async function sbGet(path) {
+  const r = await fetch(SUPABASE_URL+path, { headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY} });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function loadNames() {
+  try {
+    const rows = await sbGet('/rest/v1/tech_names?select=initial,full_name');
+    rows.forEach(r => { techNames[r.initial]=r.full_name; techInitials.add(r.initial); });
+    renderNameGrid();
+  } catch(e) { console.error(e); }
+}
+
+function renderNameGrid() {
+  const el = document.getElementById('name-grid');
+  if (!techInitials.size) { el.innerHTML='<div style="font-size:11px;color:var(--text3);">Upload a tech PLA to see initials here.</div>'; return; }
+  el.innerHTML = [...techInitials].sort().map(init =>
+    `<div class="name-row"><span class="name-init">${init}</span><input class="name-input" id="ni-${init}" placeholder="Full name" value="${techNames[init]||''}"></div>`
+  ).join('');
+}
+
+async function saveNames() {
+  const rows = [...techInitials].map(init => {
+    const v = (document.getElementById('ni-'+init)||{}).value||'';
+    return v.trim() ? {initial:init, full_name:v.trim()} : null;
+  }).filter(Boolean);
+  if (!rows.length) return;
+  try {
+    for (const r of rows) await sbDel(`/rest/v1/tech_names?initial=eq.${encodeURIComponent(r.initial)}`);
+    await sbPost('/rest/v1/tech_names', rows);
+    rows.forEach(r => { techNames[r.initial]=r.full_name; });
+    const msg = document.getElementById('save-msg');
+    msg.style.color='var(--green)'; msg.textContent='✓ Saved';
+    setTimeout(()=>{msg.textContent='';},3000);
+  } catch(e) { const msg=document.getElementById('save-msg'); msg.style.color='var(--red)'; msg.textContent='Error: '+e.message; }
+}
+
+function pick(type,store) { document.getElementById(`f-${type}-${store}`).click(); }
+function over(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function leave(e) { e.currentTarget.classList.remove('over'); }
+function drop(e,type,store) { e.preventDefault(); e.currentTarget.classList.remove('over'); const f=e.dataTransfer.files[0]; if(f) process(f,type,store); }
+function go(input,type,store) { if(input.files[0]) process(input.files[0],type,store); }
+
+function setDZ(type,store,cls,msg) {
+  document.getElementById(`dz-${type}-${store}`).className='drop-zone '+cls;
+  document.getElementById(`s-${type}-${store}`).textContent=msg;
+}
+
+async function process(file,type,store) {
+  setDZ(type,store,'drop-zone busy','Reading...');
+  try {
+    const lines = await readFile(file);
+    let data;
+    if (type==='wip') data=parseWIP(lines);
+    else if (type==='sales') data=parseSales(lines);
+    else data=parsePLA(lines, type==='writer');
+    if (!data) { setDZ(type,store,'drop-zone fail','Could not parse file'); return; }
+    setDZ(type,store,'drop-zone busy','Uploading...');
+    await sbDel(`/rest/v1/reports?store=eq.${store}&report_type=eq.${type}`);
+    await sbPost('/rest/v1/reports', [{store, report_type:type, data, uploaded_at:new Date().toISOString()}]);
+    setDZ(type,store,'drop-zone done','✓ '+file.name);
+    // register tech initials
+    if (data.people) data.people.forEach(p=>{ if(p.name&&p.name.length<=8){techInitials.add(p.name);} });
+    if (data.laborRows) data.laborRows.forEach(r=>{ if(r.name&&r.name!=='HOUSE TECH'&&r.name.length<=8) techInitials.add(r.name); });
+    renderNameGrid();
+  } catch(e) { setDZ(type,store,'drop-zone fail','Failed: '+e.message); console.error(e); }
+}
+
+function readFile(file) {
+  return new Promise((res,rej) => {
+    const ext=file.name.split('.').pop().toLowerCase();
+    const r=new FileReader();
+    if (ext==='csv') { r.onload=e=>res(e.target.result.split('\n')); r.onerror=rej; r.readAsText(file); }
+    else { r.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});res(aoa.map(r=>r.map(c=>String(c===null||c===undefined?'':c).trim()).join(',')));}catch(err){rej(err);}};r.onerror=rej;r.readAsArrayBuffer(file);}
+  });
+}
+
+function parsePLA(lines, isWriter) {
+  lines=lines.map(l=>l.trim()).filter(l=>l);
+  const nameCol=isWriter?'ServiceWriter':'Technician';
+  let hi=0;
+  for(let i=0;i<Math.min(lines.length,12);i++){const c=lines[i].split(',').map(x=>x.trim().replace(/^"|"$/g,''));if(c[0]===nameCol||c[1]===nameCol){hi=i;break;}}
+  const headers=lines[hi].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  const norm=h=>({'ServiceWriter':'name','Technician':'name','ROCount':'ro','# RO':'ro','Hours':'hours','HRS/RO':'hro','Hrs/RO':'hro','ELR':'elr','Retail':'retail','Gross':'gross','Gross%':'grossPct','Gross %':'grossPct','PM':'pm','Cost':'cost'}[h]||h.toLowerCase().replace(/[\s/]/g,'_'));
+  let rows=lines.slice(hi+1).map(line=>{const vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));const o={};headers.forEach((h,i)=>{o[norm(h)]=vals[i]||'';});return o;});
+  let last='';
+  rows=rows.map(r=>{if(r.name&&r.name.trim())last=r.name.trim();return{...r,_name:last};});
+  const skip=n=>!n||n.toLowerCase().includes('total')||n.toLowerCase().includes('all service')||n.toLowerCase().includes('all tech')||n.toLowerCase().includes('grand');
+  const gRow=rows.find(r=>r._name.toLowerCase().includes('grand total'));
+  const grand=gRow?{ro:pf(gRow.ro),hours:pf(gRow.hours),hro:pf(gRow.hro),elr:pf(gRow.elr),retail:pf(gRow.retail),gross:pf(gRow.gross),grossPct:pf(gRow.grossPct)}:null;
+  const allRows=rows.filter(r=>r._name.toLowerCase().includes('all service')||r._name.toLowerCase().includes('all tech'));
+  const pie=['C','W','I','S'].map(pm=>{const r=allRows.find(x=>x.pm===pm);return r&&pf(r.gross)>0?{pm,label:PM_LABELS[pm],gross:pf(r.gross),ro:pf(r.ro),color:PM_COLORS[pm]}:null;}).filter(Boolean);
+  const names=[...new Set(rows.filter(r=>r._name&&!skip(r._name)).map(r=>r._name))];
+  const people=names.filter(n=>!TECH_SKIP.includes(n.toUpperCase())).map(name=>{
+    const wr=rows.filter(r=>r._name===name&&r.pm&&!skip(r._name));if(!wr.length)return null;
+    const ro=wr.reduce((s,r)=>s+pf(r.ro),0),hours=wr.reduce((s,r)=>s+pf(r.hours),0),retail=wr.reduce((s,r)=>s+pf(r.retail),0),gross=wr.reduce((s,r)=>s+pf(r.gross),0);
+    const hro=ro>0?+(hours/ro).toFixed(2):0,elr=hours>0?+(retail/hours).toFixed(2):0;
+    const type=isWriter?(WRITER_TYPES[name]||'fs'):'fs';
+    const pmBreak={};wr.forEach(r=>{if(r.pm)pmBreak[r.pm]={gross:pf(r.gross),ro:pf(r.ro),hours:pf(r.hours)};});
+    return{name,ro,hours,retail,gross,hro,elr,type,pmBreak};
+  }).filter(p=>p&&(p.ro>0||p.gross>0));
+  return{grand,pie,people};
+}
+
+function parseSales(lines) {
+  lines=lines.map(l=>l.trim()).filter(l=>l);
+  let hi=0;
+  for(let i=0;i<Math.min(lines.length,10);i++){const c=lines[i].split(',').map(x=>x.trim().replace(/^"|"$/g,''));if(c.includes('Writer')&&(c.includes('LaborSales')||c.includes('TotalSales'))){hi=i;break;}}
+  const headers=lines[hi].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  const rows=lines.slice(hi+1).map(line=>{const vals=line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));const o={};headers.forEach((h,i)=>{o[h]=vals[i]||'';});return o;})
+    .filter(r=>r.Writer&&r.Writer.trim()&&!r.Writer.includes('Total')&&!r.Writer.includes('==='));
+  const writers=rows.map(r=>({name:r.Writer.trim(),ro:pf(r.ROCount),laborSales:pf(r.LaborSales),laborGross:pf(r.LaborGross),partsSales:pf(r.PartsSales),partsGross:pf(r.PartsGross),subletSales:pf(r.SubletSales),subletGross:pf(r.SubletGross),totalSales:pf(r.TotalSales),totalGross:pf(r.TotalGross),type:WRITER_TYPES[r.Writer.trim()]||'fs'}));
+  const totals=writers.reduce((t,w)=>{t.ro+=w.ro;t.laborSales+=w.laborSales;t.laborGross+=w.laborGross;t.partsSales+=w.partsSales;t.partsGross+=w.partsGross;t.subletSales+=w.subletSales;t.subletGross+=w.subletGross;t.totalSales+=w.totalSales;t.totalGross+=w.totalGross;return t;},{ro:0,laborSales:0,laborGross:0,partsSales:0,partsGross:0,subletSales:0,subletGross:0,totalSales:0,totalGross:0});
+  return{writers,totals};
+}
+
+function parseWIP(lines) {
+  lines=lines.map(l=>l.trim()).filter(l=>l);
+  const laborRows=[],partsRows=[],otherRows=[];let section='';
+  let finalTotal={retail:0,cost:0,cp:0,war:0,int:0,con:0};
+  lines.forEach(line=>{
+    if(!line||line.startsWith('='))return;
+    const cells=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+    const c0=cells[0]||'',c1=cells[1]||'';
+    if(c0==='Parts:'){section='parts';return;}if(c0==='Labor:'){section='labor';return;}if(c0==='Other:'){section='other';return;}
+    if(c0.startsWith('===')||c1.startsWith('==='))return;
+    if(c0==='Cust'||c1==='Cost'||c0==='Cost')return;if(!c1)return;
+    if(c0.startsWith('Total')||c0.startsWith('Final')){if(c0.startsWith('Final'))finalTotal={cost:pf(cells[2]),retail:pf(cells[3]),cp:pf(cells[4]),war:pf(cells[5]),int:pf(cells[6]),con:pf(cells[7])};return;}
+    if(!section)return;
+    const row={id:c0,name:c1,cost:pf(cells[2]),retail:pf(cells[3]),cp:pf(cells[4]),war:pf(cells[5]),int:pf(cells[6]),con:pf(cells[7])};
+    if(section==='labor')laborRows.push(row);else if(section==='parts')partsRows.push(row);else otherRows.push({name:c1,cost:pf(cells[2]),retail:pf(cells[3])});
+  });
+  const s=(arr,keys)=>arr.reduce((t,r)=>{keys.forEach(k=>t[k]=(t[k]||0)+r[k]);return t;},{});
+  const laborTotal=s(laborRows,['cost','retail','cp','war','int','con']);
+  const partsTotal=s(partsRows,['cost','retail']);
+  const otherTotal=s(otherRows,['cost','retail']);
+  if(!finalTotal.retail)finalTotal={retail:(laborTotal.retail||0)+(partsTotal.retail||0)+(otherTotal.retail||0),cost:(laborTotal.cost||0)+(partsTotal.cost||0),cp:laborTotal.cp||0,war:laborTotal.war||0,int:laborTotal.int||0,con:laborTotal.con||0};
+  return{laborRows,partsRows,otherRows,laborTotal,partsTotal,otherTotal,finalTotal};
+}
+</script>
+</body>
+</html>
